@@ -1,82 +1,73 @@
 const { response, request } = require('express')
+const bcryptjs = require('bcryptjs');
+
+const Usuario = require('../models/user')
 
 
-const userGet = (req=request, res=response) => {
-    // 1: enviar en postman: http://localhost:8080/api/usuarios (get)
-    // res.json({
-    //     mensaje: "get API - controlador"
-    // });
-    // postman retorna lo que está en el mensaje (2 líneas arriba)
+const userGet = async (req=request, res=response) => {
+    const {limite=5, desde=0} = req.query;
+    const query = {estado: true};
 
-    // 2a: enviar en postman http://localhost:8080/api/usuarios?q=hola&nombre=david&apikey=12341 (get):
-    const {q, nombre, apikey, pais='Sin país'} = req.query;
+    // Promise.all() --> ejecuta varias promesas en paralelo y las retorna en un array:
+    const [total, usuarios] = await Promise.all([
+        Usuario.count(query), // total
+        Usuario.find(query) // usuarios
+            // postman: localhost:8080/api/usuarios?desde=5&limite=10
+            .skip(Number(desde))
+            .limit(Number(limite))
+    ])
 
     res.json({
-        msg: 'get API - controlador',
-        q,
-        nombre,
-        apikey,
-        pais
+        total,
+        usuarios
     })
-    // postman retorna:el msg mas el query que es lo que está en el link (:2a):
-/*     {
-        "msg": "get API - controlador",
-        "q": "hola",
-        "nombre": "david",
-        "apikey": "12341",
-        "pais": "Sin país"
-    } */
 }
 
-const userPut = (req, res) => {
-    // enviar en postman: http://localhost:8080/api/usuarios/10 (put) (necesariamente tiene que enviarse el /10 que es el id):
+const userPut = async (req, res) => {
 
     const {id} = req.params;
-    res.status(400).json({
-        mensaje: "put API - controlador",
-        id
-    });
-    /* postman devuelve:
-    {
-        "mensaje": "put API - controlador",
-        "id": "10"
+    const { _id, password, google, correo, ... resto } = req.body
+
+    if ( password ) {
+        // encriptar la constraseña
+        const salt = bcryptjs.genSaltSync(10);
+        resto.password = bcryptjs.hashSync(password, salt);
     }
-    */
+
+    const usuario = await Usuario.findByIdAndUpdate(id, resto);
+
+    res.status(400).json({
+        usuario
+    });
 }
 
-const userPost = (req, res) => {
-    // enviar en postman: http://localhost:8080/api/usuarios (post): 
-    /* 
-    {
-        "nombre": "David",
-        "edad": 28,
-        "id": 1,
-        "apellido": "Baila"
-    }
-     */
+const userPost = async (req, res=response) => {
 
-    // solo recibe lo que se especifica aquí:
-    const {nombre, edad} = req.body;
+
+    // extrayendo el body
+    const { nombre, correo, password, role } = req.body;
+    // instanciación del modelo (clase) usuario
+    const usuario = new Usuario({nombre, correo, password, role});
+
+    // encriptar la constraseña
+    //                    salt (cantidad de vueltas para hacer más segura la encriptación, por defecto es 10)
+    const salt = bcryptjs.genSaltSync(10);
+    usuario.password = bcryptjs.hashSync(password, salt);
+
+    // guardando la instancia creada:
+    await usuario.save();
 
     res.status(201).json({
-        mensaje: "post API - controlador",
-        nombre,
-        edad,
+        usuario,
     });
-
-    /* postman devuelve:
-    {
-        "mensaje": "post API - controlador",
-        "nombre": "David",
-        "edad": 28
-    }
-     */
 }
 
-const userDelete = (req, res) => {
-    res.json({
-        mensaje: "delete API - controlador"
-    });
+const userDelete = async (req, res=response) => {
+    const {id} = req.params
+
+    const usuario = await Usuario.findByIdAndUpdate(id, {estado: false});
+    res.json(usuario)
+
 }
 
 const userPatch = (req, res) => {
