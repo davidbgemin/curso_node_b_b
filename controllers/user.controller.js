@@ -8,7 +8,6 @@ const userGet = async (req=request, res=response) => {
     const {limite=5, desde=0} = req.query;
     const query = {estado: true};
 
-    // Promise.all() --> ejecuta varias promesas en paralelo y las retorna en un array:
     const [total, usuarios] = await Promise.all([
         Usuario.count(query), // total
         Usuario.find(query) // usuarios
@@ -66,7 +65,8 @@ const userDelete = async (req, res=response) => {
     const {id} = req.params
 
     const usuario = await Usuario.findByIdAndUpdate(id, {estado: false});
-    res.json(usuario)
+
+    res.json({usuario, /* usuarioAutenticado */})
 
 }
 

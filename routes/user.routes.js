@@ -1,8 +1,14 @@
 const {Router} = require('express');
 const {check} = require('express-validator');
 
+const {
+    validarCampos,
+    validarJWT,
+    esAdminRole,
+    tieneRole
+} = require('../middleware')
+
 const { userGet, userPut, userPost, userDelete, userPatch } = require('../controllers/user.controller');
-const { validarCampos } = require('../middleware/validar-campos');
 const { esRoleValido, emailExiste, existeUserPorId } = require('../helpers/db-validators');
 
 const router = Router();
@@ -30,6 +36,9 @@ router.post("/", [
 ], userPost);
 
 router.delete("/:id", [
+    validarJWT,
+    // esAdminRole, // este middleware fuerza a que el usuario tenga el rol de admin
+    tieneRole('ADMIN_ROLE', 'USER_ROLE'), // este middleware indica que lo que se recibe tiene que ser o ADMIN_ROLE o USER_ROLE
     check('id', 'No es un id válido').isMongoId(),
     check('id').custom(existeUserPorId),
     validarCampos

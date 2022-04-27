@@ -32,9 +32,10 @@ const UsuarioSchema = new Schema({
     }
 })
 
-// para que no se muestre el password ni __v en la respuesta
 UsuarioSchema.methods.toJSON = function() {
-    const { __v, password, ...usuario } = this.toObject();
+    const { __v, password, _id, ...usuario } = this.toObject();
+    // cambiando _id a uid (sin modificar la base de datos, solo la respuesta y/o get)
+    usuario.uid = _id;
     return usuario;
 }
 
